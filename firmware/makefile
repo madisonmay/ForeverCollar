@@ -60,7 +60,6 @@ USB_OPTS  += -D USB_EP0SIZE=64
 
 include $(USB_PATH)/makefile
 
-
 # List C source files here. (C dependencies are automatically generated.)
 SRC += $(SRC_USB)
 SRC += main.c
@@ -89,7 +88,7 @@ OPT = 3
 #     Each directory must be seperated by a space.
 #     Use forward slashes for directory separators.
 #     For a directory that has spaces, enclose it in quotes.
-EXTRAINCDIRS = $(USB_PATH)/
+EXTRAINCDIRS = $(USB_PATH)/ ./nmea/
 
 
 # Compiler flag to set the C Standard level.

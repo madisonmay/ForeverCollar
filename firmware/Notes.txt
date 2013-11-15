@@ -1,0 +1,14 @@
+uint16_t BSEL = 12;
+uint8_t BSCALE = 1;
+
+PORTE.BAUDCTRLA = BSEL & 0XFF;
+
+PORTE.BAUDCTRLB = (BSEL & 0xF000) >> 8 | (BSCALE << 4);
+
+
+/* 
+
+1 | 2 = 3;
+1 & 2 = 1;
+
+1 << 2 = 4;
