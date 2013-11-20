@@ -58,6 +58,9 @@ USB_PATH = ./usb
 USB_OPTS  += -D USB_MAXEP=2
 USB_OPTS  += -D USB_EP0SIZE=64
 
+# Path to the NMEA library
+NMEA_PATH = ./nmea
+
 include $(USB_PATH)/makefile
 
 # List C source files here. (C dependencies are automatically generated.)
@@ -66,7 +69,7 @@ SRC += main.c
 SRC += Descriptors.c
 
 # List C++ source files here. (C dependencies are automatically generated.)
-CPPSRC =
+CPPSRC = nmea/nmea.cpp
 
 
 # List Assembler source files here.
@@ -88,7 +91,7 @@ OPT = 3
 #     Each directory must be seperated by a space.
 #     Use forward slashes for directory separators.
 #     For a directory that has spaces, enclose it in quotes.
-EXTRAINCDIRS = $(USB_PATH)/ ./nmea/
+EXTRAINCDIRS = $(USB_PATH)/ $(NMEA_PATH)/
 
 
 # Compiler flag to set the C Standard level.
@@ -142,7 +145,6 @@ CFLAGS += -Wa,-adhlns=$(<:%.c=$(OBJDIR)/%.lst)
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 CFLAGS += $(CSTANDARD)
 
-
 #---------------- Compiler Options C++ ----------------
 #  -g*:          generate debugging information
 #  -O*:          optimization level
@@ -176,13 +178,13 @@ ASFLAGS = $(ADEFS) -Wa,-adhlns=$(<:%.S=$(OBJDIR)/%.lst),-gstabs,--listing-cont-l
 
 
 #---------------- Linker Options ----------------
-#  -Wl,...:     tell GCC to pass this to linker.
-#    -Map:      create map file
-#    --cref:    add cross reference to  map file
+#  -Wl,...:    tell GCC to pass this to linker.
+#     -Map:    create map file
+#   --cref:    add cross reference to  map file
 LDFLAGS  = -Wl,-Map=$(TARGET).map,--cref
 LDFLAGS += -Wl,--relax
 LDFLAGS += -Wl,--gc-sections
-
+LDFLAGS += -Wl,-u,vfprintf -lprintf_flt -lm
 #---------------- Programming Options (avrdude) ----------------
 
 # Programming hardware

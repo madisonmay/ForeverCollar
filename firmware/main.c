@@ -2,16 +2,23 @@
 #include <avr/io.h>
 #include <inttypes.h>
 #include <stdio.h> 
+#include <stdlib.h>
 #include <util/delay.h>
 #include <string.h> 
 #include "nmea/nmea.h"
 #define USART_BAUD 4800L
+
+typedef struct _latlng {
+  char *lat;
+  char *lng;
+} latlng;
 
 // static int uart_putchar(char c); 
 static void uart_init (void); 
 void send_usb_data(char *s);
 bool updating = false;
 static void parse_nmea(void);
+extern void parse_nmea_string(char *s, latlng *gps);
 
 char *message;
 static void uart_init(void) {
@@ -40,38 +47,91 @@ static void uart_init(void) {
   USARTD0.CTRLC = 0x03;  
 }
 
-static void parse_nmea(void) {
-	  const char *buff[] = {
-        "$GPRMC,173843,A,3349.896,N,11808.521,W,000.0,360.0,230108,013.4,E*69\r\n",
-        "$GPGGA,111609.14,5001.27,N,3613.06,E,3,08,0.0,10.2,M,0.0,M,0.0,0000*70\r\n",
-        "$GPGSV,2,1,08,01,05,005,80,02,05,050,80,03,05,095,80,04,05,140,80*7f\r\n",
-        "$GPGSV,2,2,08,05,05,185,80,06,05,230,80,07,05,275,80,08,05,320,80*71\r\n",
-        "$GPGSA,A,3,01,02,03,04,05,06,07,08,00,00,00,00,0.0,0.0,0.0*3a\r\n",
-        "$GPRMC,111609.14,A,5001.27,N,3613.06,E,11.2,0.0,261206,0.0,E*50\r\n",
-        "$GPVTG,217.5,T,208.8,M,000.00,N,000.01,K*4C\r\n"
-    };
-
-    int it;
-    nmeaINFO info;
-    nmeaPARSER parser;
-    nmeaPOS dpos;
-
-    nmea_zero_INFO(&info);
-    nmea_parser_init(&parser);
-
-    for(it = 0; it < 6; ++it){
-        nmea_parse(&parser, buff[it], (int)strlen(buff[it]), &info);
-        nmea_info2pos(&info, &dpos);
-
-        printf(
-            "%03d, Lat: %f, Lon: %f, Sig: %d, Fix: %d\n",
-            it, dpos.lat, dpos.lon, info.sig, info.fix
-        );
-    }
-
-    nmea_parser_destroy(&parser);
+char* concat(char *s1, char *s2)
+{
+    //string concatenation -- not needed now, but might prove useful later
+    char *result = malloc(strlen(s1)+strlen(s2)+1);//+1 for the zero-terminator
+    //should also check for memory allocation errors here
+    strcpy(result, s1);
+    strcat(result, s2);
+    return result;
 }
 
+void parse_nmea_string(char *s, latlng *gps)
+{
+  int i=0; // used to iterate through array
+  char *token[20]; //stores the chunks of string after splitting the string on commas
+
+  token[0] = strtok(s, ","); //get pointer to first token found and store in
+                             //first element of array
+  while(token[i] != NULL) {  //while commas continue to be found
+      i++;  
+      token[i] = strtok(NULL, ","); //continue to split the string
+  }
+
+  //Example: token = [], s = "a,b,c"
+  //Iteration 1
+  //token --> ["a"], s-->"b,c"
+  //token --> ["a", "b"], s-->"c"
+  //token --> ["a", "b", "c"], s-->""
+  //end
+
+  //when parsing GPRMC data
+  //longitude should be stored at index 3
+  //latitude should be stord at index 5
+
+  //indices will have to be changed if our gps module
+  //speaks a different dialog of NMEA
+
+  gps->lng = token[3]; //longitude
+  gps->lat = token[5]; //latitude
+}
+
+static void parse_nmea(void) {
+
+    //sample nmea strings for testing parser
+    char *buff[] = {
+        "$GPRMC,111609.14,A,5001.27,N,3613.06,E,11.2,0.0,261206,0.0,E*50\r\n",
+        "$GPRMC,173843,A,3349.896,N,11808.521,W,000.0,360.0,230108,013.4,E*69\r\n"
+    };
+
+    //index for iteration
+    int it = 0;
+
+    //latlng struct to store gps data in
+    //reused in every iteration
+    latlng gps;
+
+
+    //the value corresponds to the length of the test string buffer
+    for(it = 0; it < 2; ++it){
+
+      //parse lat and lng out of raw nmea string
+      parse_nmea_string(buff[it], &gps);
+
+      //determine how many characters are in the gps latitude and longitude strings
+      int len_lat = strlen(gps.lat);
+      int len_lng = strlen(gps.lng);
+
+      //iterate over lat and lng strings, sending them char by char over usb
+      for (int i=0; i<len_lat; i++) {
+        send_byte(gps.lat[i]);  
+      }
+      //lat/lng seperator 
+      send_byte(' ');  
+      for (int j=0; j<len_lng; j++) {
+        send_byte(gps.lng[j]);  
+      }
+      //add new line and parse next string
+      send_byte('\n');
+    }
+
+    //presumably has to do with memory management
+    //for now, just make sure to call if after you're done sending bytes over usb
+    break_and_flush();
+}
+
+// // code for communicating with the gps module via uart
 // static int uart_putchar (char c) { 
 //     if (c == '\n') 
 //         uart_putchar('\r'); 
@@ -84,28 +144,32 @@ static void parse_nmea(void) {
 
 //     return 0; 
 // } 
-
 int main(void){
+
+  //usb configuration
 	USB_ConfigureClock();
 	USB_Init();
 	USB.INTCTRLA = USB_BUSEVIE_bm | USB_INTLVL_MED_gc;
 	USB.INTCTRLB = USB_TRNIE_bm | USB_SETUPIE_bm;
 	PMIC.CTRL = PMIC_LOLVLEN_bm | PMIC_MEDLVLEN_bm;
 	sei();
+
+  //uart init code -- remove if statement when we're ready to communicate with the gps
 	if (false) {
 		uart_init();
 	}
 
-	parse_nmea();
+  //call break and flush to make sure the buffer is cleared
+	break_and_flush();
 
-	message = "012345678901234567";
-	// send_usb_data(message);
+  //parse nmea string and send result over usb
+  parse_nmea();
 	for (;;){
+
 		// uart_putchar('a');
 	}
 
 }
-
 #define stringify(s) #s
 
 const char PROGMEM hwversion[] = stringify(HW_VERSION);

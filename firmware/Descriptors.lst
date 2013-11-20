@@ -467,18 +467,18 @@
  257               		.file 7 "Descriptors.h"
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 Descriptors.c
-     /tmp/ccZk86pp.s:2      *ABS*:000000000000003f __SREG__
-     /tmp/ccZk86pp.s:3      *ABS*:000000000000003e __SP_H__
-     /tmp/ccZk86pp.s:4      *ABS*:000000000000003d __SP_L__
-     /tmp/ccZk86pp.s:5      *ABS*:0000000000000034 __CCP__
-     /tmp/ccZk86pp.s:6      *ABS*:0000000000000000 __tmp_reg__
-     /tmp/ccZk86pp.s:7      *ABS*:0000000000000001 __zero_reg__
-     /tmp/ccZk86pp.s:15     .text:0000000000000000 CALLBACK_USB_GetDescriptor
-     /tmp/ccZk86pp.s:235    .progmem.data:0000000000000058 XmegaExample_DeviceDescriptor
-     /tmp/ccZk86pp.s:195    .progmem.data:0000000000000034 XmegaExample_LanguageString
-     /tmp/ccZk86pp.s:202    .progmem.data:0000000000000038 XmegaExample_ConfigurationDescriptor
-     /tmp/ccZk86pp.s:174    .progmem.data:0000000000000016 XmegaExample_ManufacturerString
-     /tmp/ccZk86pp.s:157    .progmem.data:0000000000000000 XmegaExample_ProductString
+     /tmp/ccww9rTg.s:2      *ABS*:000000000000003f __SREG__
+     /tmp/ccww9rTg.s:3      *ABS*:000000000000003e __SP_H__
+     /tmp/ccww9rTg.s:4      *ABS*:000000000000003d __SP_L__
+     /tmp/ccww9rTg.s:5      *ABS*:0000000000000034 __CCP__
+     /tmp/ccww9rTg.s:6      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccww9rTg.s:7      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccww9rTg.s:15     .text:0000000000000000 CALLBACK_USB_GetDescriptor
+     /tmp/ccww9rTg.s:235    .progmem.data:0000000000000058 XmegaExample_DeviceDescriptor
+     /tmp/ccww9rTg.s:195    .progmem.data:0000000000000034 XmegaExample_LanguageString
+     /tmp/ccww9rTg.s:202    .progmem.data:0000000000000038 XmegaExample_ConfigurationDescriptor
+     /tmp/ccww9rTg.s:174    .progmem.data:0000000000000016 XmegaExample_ManufacturerString
+     /tmp/ccww9rTg.s:157    .progmem.data:0000000000000000 XmegaExample_ProductString
 
 UNDEFINED SYMBOLS
 __do_copy_data
