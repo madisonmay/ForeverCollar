@@ -5,29 +5,90 @@
 #include <stdlib.h>
 #include <util/delay.h>
 #include <string.h> 
+#include <math.h>
 #include "nmea/nmea.h"
-#define USART_BAUD 4800L
+
+//sample nmea strings for testing parser
+double lat = 42.292747;
+double lng = -71.264622;
+double max_dist = .200;
 
 typedef struct _latlng {
-  char *lat;
-  char *lng;
+  double lat;
+  double lng;
 } latlng;
 
-// static int uart_putchar(char c); 
-static void uart_init (void); 
+int gps_putchar(char c); 
+char gps_getchar();
+int gprs_putchar(char c); 
+char gprs_getchar();
+
+void send_string(char* s);
+
+void gps_init (void);
+void grps_init(void);
+
+double distance(double, double);
+
+void turn_on_gps(void);
+
+void wake_up_gps(void);
+void wake_up_gprs(void);
+
 void send_usb_data(char *s);
 bool updating = false;
-static void parse_nmea(void);
+void parse_nmea(void);
+
+void send_message(char* number, char* message);
+
 extern void parse_nmea_string(char *s, latlng *gps);
 
 char *message;
-static void uart_init(void) {
 
-	// Set the TxD pin high - set PORTC DIR register bit 3 to 1 
-  PORTD.OUTSET = PIN3_bm; 
+void send_string(char* s) {
+  int length = strlen(s);
+  for (int i=0; i<length; i++) {
+    send_byte(s[i]);
+  }
+}
 
-  // Set the TxD pin as an output - set PORTC OUT register bit 3 to 1 
+void turn_on_gps(void) {
+  // wait one second after powering on, as recommended by a2235-h data sheet
+  _delay_ms(1000);
+
+  // // May or may not be necessary -- docs on wakeup are a bit sketchy
+  // // Does the gps module transmit anything before locking on to a gps position?
+  // // Or do we need to wait before querying for location data?
+  // Set PD5 direction to output
+  PORTD.DIRSET = PIN5_bm;
+
+  // LOW/HIGH transmission of PD5 to wakeup gps module 
+  PORTD.OUTTGL = PIN5_bm;
+}
+
+void wake_up_gps(void) {
+
+}
+
+void gps_init(void) {
+  /*
+  
+  Port numbers, baud rate, etc will need to be changed when switching 
+  to a different port.  This is a bit complex to abstract out to a new 
+  code layer at the moment (too many inputs required for things to work right)
+  so we'll have to keep it as is.  
+
+  Specifically, we'll have to change PORTD, USARTDO, BSEL, BSCALE, and the Tx bitmask
+
+  */
+
+  turn_on_gps();
+
+  // Set the TxD pin as an output - set PORTD OUT register bit 3 to 1 
   PORTD.DIRSET = PIN3_bm; 
+
+  // Set the TxD pin high - set PORTD DIR register bit 3 to 1 
+  PORTD.OUTSET = PIN3_bm; 
 
 	//Baud rate of 4800
 	uint16_t BSEL = 12;
@@ -47,10 +108,43 @@ static void uart_init(void) {
   USARTD0.CTRLC = 0x03;  
 }
 
+void wake_up_gprs(void) {
+  // 
+}
+
+void gprs_init(void) {
+  //change port numbers when we get our proto board
+
+  wake_up_gprs();
+  //Baud rate of 19200
+
+  // Set the TxD pin as an output - set PORTD OUT register bit 3 to 1 
+  PORTD.DIRSET = PIN3_bm; 
+
+  // Set the TxD pin high - set PORTD DIR register bit 3 to 1 
+  PORTD.OUTSET = PIN3_bm; 
+
+  uint16_t BSEL = 6;
+  uint8_t BSCALE = 0;
+  USARTD0_BAUDCTRLA = BSEL & 0XFF;
+  USARTD0_BAUDCTRLB = (BSCALE << 4) | (BSEL & 0xF000) >> 8;
+
+  // no interrupts
+  // can't overwrite bits 7:6
+  USARTD0.CTRLA = 0x00;
+
+  // Enable transmitter and receiver
+  USARTD0.CTRLB = USART_TXEN_bm | USART_RXEN_bm;  
+
+  // async, no parity, 1 stop bit, 8 bit data,
+  // 00     00         00          11    
+  USARTD0.CTRLC = 0x03;  
+}
+
 char* concat(char *s1, char *s2)
 {
     //string concatenation -- not needed now, but might prove useful later
-    char *result = malloc(strlen(s1)+strlen(s2)+1);//+1 for the zero-terminator
+    char *result = malloc(strlen(s1)+strlen(s2)+1);
     //should also check for memory allocation errors here
     strcpy(result, s1);
     strcat(result, s2);
@@ -83,47 +177,75 @@ void parse_nmea_string(char *s, latlng *gps)
   //indices will have to be changed if our gps module
   //speaks a different dialog of NMEA
 
-  gps->lng = token[3]; //longitude
-  gps->lat = token[5]; //latitude
+  char* lat_str = token[3]; //longitude
+  char* lng_str = token[5]; //latitude
+
+  //converts string stored in gps->lat_str to double and stores in lat
+  gps->lat = atof(lat_str)/100.;
+
+  //converts string stored in gps->lng_str to double and stores in lng
+  gps->lng = atof(lng_str)/100.;
 }
 
-static void parse_nmea(void) {
+#define d2r (M_PI / 180.0)
 
-    //sample nmea strings for testing parser
-    char *buff[] = {
-        "$GPRMC,111609.14,A,5001.27,N,3613.06,E,11.2,0.0,261206,0.0,E*50\r\n",
-        "$GPRMC,173843,A,3349.896,N,11808.521,W,000.0,360.0,230108,013.4,E*69\r\n"
-    };
+//calculate distance, assuming earth is spherical
+double distance(double gpslat, double gpslng) {
+    double dlong = (gpslng - lng) * d2r;
+    double dlat = (gpslat - lat) * d2r;
+    double a = pow(sin(dlat/2.0), 2) + cos(lat*d2r) * cos(gpslat*d2r) * pow(sin(dlong/2.0), 2);
+    double c = 2 * atan2(sqrt(a), sqrt(1-a));
+    double d = 6367 * c;
 
-    //index for iteration
-    int it = 0;
+    return d;
+}
+
+
+
+void parse_nmea(void) {
+
+    char *buff = "$GPRMC,71.132,A,4230.00,N,-7130.00,E,11.2,0.0,261206,0.0,E*50\r\n";
 
     //latlng struct to store gps data in
-    //reused in every iteration
+    //reused in every iterationif (d
     latlng gps;
 
+    //parse lat and lng out of raw nmea string
+    parse_nmea_string(buff, &gps);
 
-    //the value corresponds to the length of the test string buffer
-    for(it = 0; it < 2; ++it){
+    double dist = distance(gps.lat, gps.lng);
 
-      //parse lat and lng out of raw nmea string
-      parse_nmea_string(buff[it], &gps);
+    if (dist > max_dist) {
+
+      char lat_buff[100];
+      char lng_buff[100];
+      char dist_buff[100];
+
+      sprintf(lat_buff, "%f", gps.lat);
+      sprintf(lng_buff, "%f", gps.lng);
+      sprintf(dist_buff, "%f", dist);
 
       //determine how many characters are in the gps latitude and longitude strings
-      int len_lat = strlen(gps.lat);
-      int len_lng = strlen(gps.lng);
+      int len_lat = strlen(lat_buff);
+      int len_lng = strlen(lng_buff);
+      int len_dist = strlen(dist_buff);
 
       //iterate over lat and lng strings, sending them char by char over usb
       for (int i=0; i<len_lat; i++) {
-        send_byte(gps.lat[i]);  
+        send_byte(lat_buff[i]);  
       }
+
       //lat/lng seperator 
       send_byte(' ');  
       for (int j=0; j<len_lng; j++) {
-        send_byte(gps.lng[j]);  
+        send_byte(lng_buff[j]);  
       }
-      //add new line and parse next string
-      send_byte('\n');
+
+            //lat/lng seperator 
+      send_byte(' ');  
+      for (int k=0; k<len_dist; k++) {
+        send_byte(dist_buff[k]);  
+      }
     }
 
     //presumably has to do with memory management
@@ -131,19 +253,115 @@ static void parse_nmea(void) {
     break_and_flush();
 }
 
-// // code for communicating with the gps module via uart
-// static int uart_putchar (char c) { 
-//     if (c == '\n') 
-//         uart_putchar('\r'); 
+// code for communicating with the gps module via uart
+int gps_putchar (char c) { 
+    if (c == '\n') 
+        gps_putchar('\r'); 
 
-//     // Wait for the transmit buffer to be empty 
-//     while ( !( USARTD0.STATUS & USART_DREIF_bm) ); 
+    // Wait for the transmit buffer to be empty 
+    while ( !( USARTD0.STATUS & USART_DREIF_bm) ); 
 
-//     // Put our character into the transmit buffer 
-//     USARTD0.DATA = c; 
+    // Put our character into the transmit buffer 
+    USARTD0.DATA = c; 
 
-//     return 0; 
-// } 
+    return 0; 
+} 
+
+// code for communicating with the gps module via uart
+char gps_getchar () { 
+
+    // Wait for the receive buffer to be empty 
+    while ( !( USARTD0.STATUS & DMA_CH_TRIGSRC_USARTD0_RXC_gc) ); 
+
+    // Receive char from receive buffer 
+    return USARTD0.DATA; 
+} 
+
+// code for communicating with the gprs module via uart
+int gprs_putchar (char c) { 
+    if (c == '\n') 
+        gps_putchar('\r'); 
+
+    // Wait for the transmit buffer to be empty 
+    while ( !( USARTD0.STATUS & USART_DREIF_bm) ); 
+
+    // Put our character into the transmit buffer 
+    USARTD0.DATA = c; 
+
+    return 0; 
+} 
+
+// code for communicating with the gprs module via uart
+char gprs_getchar () { 
+
+    // Wait for the receive buffer to be empty 
+    while ( !( USARTD0.STATUS & DMA_CH_TRIGSRC_USARTD0_RXC_gc) ); 
+
+    // Receive char from receive buffer 
+    return USARTD0.DATA; 
+} 
+
+void send_message(char* number, char* text_message) {
+
+  gprs_putchar('\r');
+  _delay_ms(1000);
+
+  char* text_mode = "AT+CMGF=1\r";
+  _delay_ms(1000);
+
+  // char c;
+
+  int length = strlen(text_mode) + 2;
+  for (int i=0; i<length; i++) {
+    gprs_putchar(text_mode[i]);
+
+    // debugging
+    // c = gprs_getchar();
+    // send_byte(c);
+  }
+  _delay_ms(100);
+  break_and_flush();
+
+
+  //build number string
+  char* number_string = concat("AT+CMGS=\"", number);
+  char* new_number_string = concat(number_string, "\"\r");
+
+  //more sketchiness
+  length = strlen(new_number_string) + 2;
+
+  for (int j=0; j<length; j++) {
+    gprs_putchar(new_number_string[j]);
+
+    //debugging
+    // c = gprs_getchar();
+    // send_byte(c);
+  }
+  _delay_ms(100);
+  break_and_flush();
+
+
+  //even more sketchiness
+  length = strlen(text_message) + 3;
+  for (int k=0; k<length; k++) {
+    gprs_putchar(text_message[k]);
+
+    //debugging
+    // c = gprs_getchar();
+    // send_byte(c);
+  }
+  _delay_ms(100);
+  break_and_flush();
+
+  //check this later to ensure ^Z is being sent
+  gprs_putchar(26);
+  // c = gprs_getchar();
+  // send_byte(c);
+
+  _delay_ms(100);
+  break_and_flush();
+}
+
 int main(void){
 
   //usb configuration
@@ -154,22 +372,32 @@ int main(void){
 	PMIC.CTRL = PMIC_LOLVLEN_bm | PMIC_MEDLVLEN_bm;
 	sei();
 
-  //uart init code -- remove if statement when we're ready to communicate with the gps
+  //uart init code -- change condition to true when we're ready to communicate with the gps
 	if (false) {
-		uart_init();
+		gps_init();
+    gps_putchar('a');
+    gps_getchar();
 	}
+
+  if (true) {
+    gprs_init();
+  }
 
   //call break and flush to make sure the buffer is cleared
 	break_and_flush();
 
-  //parse nmea string and send result over usb
+  // parse nmea string and send result over usb
   parse_nmea();
+
+  char* phonenumber = "+12153166262";
+  char* text_message = "hello world";
+  send_message(phonenumber, text_message);
+
 	for (;;){
-
-		// uart_putchar('a');
+    //heart of the firmware logic goes here
 	}
-
 }
+
 #define stringify(s) #s
 
 const char PROGMEM hwversion[] = stringify(HW_VERSION);
