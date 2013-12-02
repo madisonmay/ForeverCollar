@@ -12,16 +12,15 @@
 double lat = 42.292747;
 double lng = -71.264622;
 double max_dist = .200;
+char* twilio_number = "+13042493059";
 
 typedef struct _latlng {
   double lat;
   double lng;
 } latlng;
 
-int gps_putchar(char c); 
-char gps_getchar();
-int gprs_putchar(char c); 
-char gprs_getchar();
+int uart_putchar(char c, USART_t* USART); 
+char uart_getchar(USART_t* USART);
 
 void send_string(char* s);
 
@@ -37,7 +36,7 @@ void wake_up_gprs(void);
 
 void send_usb_data(char *s);
 bool updating = false;
-void parse_nmea(void);
+char* parse_nmea(void);
 
 void send_message(char* number, char* message);
 
@@ -202,7 +201,7 @@ double distance(double gpslat, double gpslng) {
 
 
 
-void parse_nmea(void) {
+char* parse_nmea(void) {
 
     char *buff = "$GPRMC,71.132,A,4230.00,N,-7130.00,E,11.2,0.0,261206,0.0,E*50\r\n";
 
@@ -214,6 +213,8 @@ void parse_nmea(void) {
     parse_nmea_string(buff, &gps);
 
     double dist = distance(gps.lat, gps.lng);
+
+    char** result = malloc(30 * sizeof(char*));
 
     if (dist > max_dist) {
 
@@ -246,79 +247,61 @@ void parse_nmea(void) {
       for (int k=0; k<len_dist; k++) {
         send_byte(dist_buff[k]);  
       }
+
+      char* lat_str = &lat_buff[0];
+      char* lng_str = &lng_buff[0];
+      *result = concat(concat(lat_str, ","), lng_str);
     }
 
     //presumably has to do with memory management
     //for now, just make sure to call if after you're done sending bytes over usb
     break_and_flush();
+    return *result;
 }
 
-// code for communicating with the gps module via uart
-int gps_putchar (char c) { 
-    if (c == '\n') 
-        gps_putchar('\r'); 
-
-    // Wait for the transmit buffer to be empty 
-    while ( !( USARTD0.STATUS & USART_DREIF_bm) ); 
-
-    // Put our character into the transmit buffer 
-    USARTD0.DATA = c; 
-
-    return 0; 
-} 
-
-// code for communicating with the gps module via uart
-char gps_getchar () { 
-
-    // Wait for the receive buffer to be empty 
-    while ( !( USARTD0.STATUS & DMA_CH_TRIGSRC_USARTD0_RXC_gc) ); 
-
-    // Receive char from receive buffer 
-    return USARTD0.DATA; 
-} 
-
 // code for communicating with the gprs module via uart
-int gprs_putchar (char c) { 
+int uart_putchar (char c, USART_t* USART) { 
     if (c == '\n') 
-        gps_putchar('\r'); 
+        uart_putchar('\r', USART); 
 
     // Wait for the transmit buffer to be empty 
-    while ( !( USARTD0.STATUS & USART_DREIF_bm) ); 
+    while ( !( USART->STATUS & USART_DREIF_bm) ); 
 
     // Put our character into the transmit buffer 
-    USARTD0.DATA = c; 
+    USART->DATA = c; 
 
     return 0; 
 } 
 
 // code for communicating with the gprs module via uart
-char gprs_getchar () { 
+char uart_getchar (USART_t* USART) { 
 
     // Wait for the receive buffer to be empty 
-    while ( !( USARTD0.STATUS & DMA_CH_TRIGSRC_USARTD0_RXC_gc) ); 
+    while ( !( USART->STATUS & USART_RXCIF_bm) ); 
 
     // Receive char from receive buffer 
-    return USARTD0.DATA; 
+    return USART->DATA; 
 } 
 
 void send_message(char* number, char* text_message) {
 
-  gprs_putchar('\r');
-  _delay_ms(1000);
+  uart_putchar('\r', &USARTD0);
+  _delay_ms(100);
 
   char* text_mode = "AT+CMGF=1\r";
-  _delay_ms(1000);
+  _delay_ms(100);
 
-  // char c;
+  char c;
 
-  int length = strlen(text_mode) + 2;
-  for (int i=0; i<length; i++) {
-    gprs_putchar(text_mode[i]);
+  while (*text_mode != '\0') {  
+    uart_putchar(*text_mode, &USARTD0);
 
     // debugging
-    // c = gprs_getchar();
-    // send_byte(c);
+    c = uart_getchar(&USARTD0);
+    send_byte(c);
+    text_mode++;
   }
+
   _delay_ms(100);
   break_and_flush();
 
@@ -328,34 +311,34 @@ void send_message(char* number, char* text_message) {
   char* new_number_string = concat(number_string, "\"\r");
 
   //more sketchiness
-  length = strlen(new_number_string) + 2;
 
-  for (int j=0; j<length; j++) {
-    gprs_putchar(new_number_string[j]);
+  while (*new_number_string != '\0') {
+    uart_putchar(*new_number_string, &USARTD0);
 
     //debugging
-    // c = gprs_getchar();
-    // send_byte(c);
+    c = uart_getchar(&USARTD0);
+    send_byte(c);
+    new_number_string++;
   }
   _delay_ms(100);
   break_and_flush();
 
-
-  //even more sketchiness
-  length = strlen(text_message) + 3;
-  for (int k=0; k<length; k++) {
-    gprs_putchar(text_message[k]);
+  char* new_text_message = concat(text_message, "\r");
+  while (*new_text_message != '\0') {
+    uart_putchar(*new_text_message, &USARTD0);
 
     //debugging
-    // c = gprs_getchar();
-    // send_byte(c);
+    c = uart_getchar(&USARTD0);
+    send_byte(c);
+    new_text_message++;
   }
+
   _delay_ms(100);
   break_and_flush();
 
   //check this later to ensure ^Z is being sent
-  gprs_putchar(26);
-  // c = gprs_getchar();
+  uart_putchar(26, &USARTD0);
+  // c = uart_getchar(&USARTD0);
   // send_byte(c);
 
   _delay_ms(100);
@@ -375,8 +358,6 @@ int main(void){
   //uart init code -- change condition to true when we're ready to communicate with the gps
 	if (false) {
 		gps_init();
-    gps_putchar('a');
-    gps_getchar();
 	}
 
   if (true) {
@@ -387,11 +368,11 @@ int main(void){
 	break_and_flush();
 
   // parse nmea string and send result over usb
-  parse_nmea();
+  char* text_message = parse_nmea();
 
   char* phonenumber = "+12153166262";
-  char* text_message = "hello world";
   send_message(phonenumber, text_message);
+  send_message(twilio_number, text_message);
 
 	for (;;){
     //heart of the firmware logic goes here
