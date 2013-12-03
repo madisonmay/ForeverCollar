@@ -61,6 +61,12 @@ USB_OPTS  += -D USB_EP0SIZE=64
 # Path to the NMEA library
 NMEA_PATH = ./nmea
 
+# Path to the UART library
+UART_PATH = ./uart
+
+# Path to the concat library 
+CONCAT_PATH = ./concat
+
 include $(USB_PATH)/makefile
 
 # List C source files here. (C dependencies are automatically generated.)
@@ -69,7 +75,7 @@ SRC += main.c
 SRC += Descriptors.c
 
 # List C++ source files here. (C dependencies are automatically generated.)
-CPPSRC = nmea/nmea.cpp
+CPPSRC = 
 
 
 # List Assembler source files here.
@@ -91,7 +97,7 @@ OPT = 3
 #     Each directory must be seperated by a space.
 #     Use forward slashes for directory separators.
 #     For a directory that has spaces, enclose it in quotes.
-EXTRAINCDIRS = $(USB_PATH)/ $(NMEA_PATH)/
+EXTRAINCDIRS = $(USB_PATH)/ $(NMEA_PATH)/ $(UART_PATH)/ $(CONCAT_PATH)/
 
 
 # Compiler flag to set the C Standard level.

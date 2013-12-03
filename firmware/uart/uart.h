@@ -1,75 +1,51 @@
-/*
-    File:       uart.h
-    Version:    0.1.0
-    Date:       Feb. 23, 2013
-	License:	GPL v2
-    
-	UART interrupt driven serial communication class file for atmega128
-    
-    ****************************************************************************
-    Copyright (C) 2013 Radu Motisan  <radu.motisan@gmail.com>
-	
-	http://www.pocketmagic.net
+#include "Framework.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+uint8_t debug = 0;
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+int uart_putchar(char c, USART_t* USART); 
+char uart_getchar(USART_t* USART);
+void send_uart(char*, USART_t* USART);
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-    ****************************************************************************
- */
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include <avr/signal.h>
-#include "../timeout.h"
+// code for communicating with the gprs module via uart
+int uart_putchar (char c, USART_t* USART) { 
+    if (c == '\n') 
+        uart_putchar('\r', USART); 
 
+    // Wait for the transmit buffer to be empty 
+    while ( !( USART->STATUS & USART_DREIF_bm) ); 
 
-//volatile static voidFuncPtru08 UartRxFunc;
-//typedef void (*tUARTReceiverFunc)(unsigned char);
+    // Put our character into the transmit buffer 
+    USART->DATA = c; 
 
-class UART {
-	
-	private:
-		int m_index, //0 for UART0, 1 for UART1 and so on
-			m_nBaudRate,
-			m_nBaudRateRegister;
-	//static tUARTReceiverFunc m_UARTReceiverFunc;
-	public:
-	
-	/*
-	 * Initiates UART serial communication
-	 * uartindex: the UART index, for microcontrollers that have more than one (eg. atmega128 has too)
-	 * baud: an integer representing the baud rate
-	 * use_interrupt: receive data as interrupt, in ISR(USART0_RX_vect)/ISR(USART1_RX_vect) or by polling, using RecvPoll
-	 */
-	void Init(int uartindex, int baud, bool use_interrupt );
-	
-	/*
-	 * send one byte, b
-	 */
-	void Send(unsigned char b);
-	
-	/*
-	 * send a byte array (data) of given size (len)
-	 */
-	void Send(const unsigned char *data, int len);
-	
-	/*
-	 * send a formated string
-	 */
-	void Send(char *szFormat, ...);
-	
-	/*
-	 * wait until one byte is received, and return: blocking function
-	 */
-	unsigned char RecvPoll();
-	
-	};
+    return 0; 
+} 
+
+// code for communicating with the gprs module via uart
+char uart_getchar (USART_t* USART) { 
+
+    // Wait for the receive buffer to be empty 
+    while ( !( USART->STATUS & USART_RXCIF_bm) ); 
+
+    // Receive char from receive buffer 
+    return USART->DATA; 
+} 
+
+void send_uart(char* text, USART_t* USART) {
+  char c;
+  char* new_text = concat(text, "\r");
+  while (*new_text != '\0') {  
+    uart_putchar(*new_text, USART);
+    new_text++;
+
+    if (debug == 1) {
+      c = uart_getchar(USART);
+      send_byte(c);
+    }
+  }
+  if (debug == 1) {
+    break_and_flush();
+  }
+}
