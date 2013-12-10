@@ -2,9 +2,9 @@ void send_string(char* s);
 char* concat(char*, char*);
 
 void send_string(char* s) {
-  int length = strlen(s);
-  for (int i=0; i<length; i++) {
-    send_byte(s[i]);
+  while (*s != '\0' && s != NULL) {  
+    send_byte(*s);
+    s++;
   }
   break_and_flush();
 }

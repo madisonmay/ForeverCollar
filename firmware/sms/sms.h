@@ -35,110 +35,53 @@ void send_message(char* number, char* text_message, USART_t* USART) {
   break_and_flush();
 }
 
-char* smsStorePos = "";
-char* msg = "";
-char* snTmp = "";
-char* snFull = "";
-int SmsContentFlag;
-char SerialInByte;
-
-
-void delSMS(USART_t* USART) {
-  char* cmd = "AT+CMGD=";
-  char* delete_cmd = concat(cmd, smsStorePos);
-  send_uart(delete_cmd, USART);
-}
-
 void GprsTextModeSMS(USART_t* USART) {
   send_uart("AT+CMGF=1", USART);
 }
 
-void ClearGprsMsg() {
-  msg = "";
+void PowerDownModem(USART_t* USART) {
+  send_uart("AT+CPOWD=1", USART);
 }
 
-void GprsReadSmsStore( char* SmsStorePos, USART_t* USART){
-  char* cmd = concat("AT+CMGR=", SmsStorePos);
-  send_uart(cmd, USART);
+void SleepModem(USART_t* USART) {
+  send_uart("AT+CFUN=0", USART);
 }
 
-void ProcessSms (char* sms) {
-
-}
-
-void ProcessGprsMsg(USART_t* USART) {
-
-  char* found = strstr(msg, "Call Ready");
-  if (found != NULL)                    
-  {
-    send_string("GPRS Shield registered on Mobile Network");  
-    GprsTextModeSMS(USART);      
-  }
-
-  found = strstr(msg, "+CMTI");
-  if (found != NULL){
-    //find comma
-    found = strstr(msg, ",");
-    smsStorePos = ++found;
-    send_string("Message found");
-
-    GprsReadSmsStore(smsStorePos, USART);
-  }
-
-  found = strstr(msg, "+CMGR:");
-  if (found != NULL) {
-    found = strstr(msg, "+1");
-    if (found != NULL) {
-      snTmp = ++found;
-      snFull = "";
-      for (int i=0; i<11; i++) {
-        snFull = concat(snFull, &snTmp[i]);
-      }
-      send_string(snFull);
-
-      SmsContentFlag = 1;
-      ClearGprsMsg();
-      return;
-    } 
-  }
-
-  if (SmsContentFlag == 1){
-    send_string(msg);
-    ProcessSms(msg);
-    delSMS(USART);
-  }
-
-  ClearGprsMsg();
-  SmsContentFlag = 0; 
-}
-
-void ReceiveTextMessage(USART_t* USART) {
-  while(1) {
-    SerialInByte = uart_getchar(USART);
-    if (SerialInByte == 13){
-      ProcessGprsMsg(USART);
-    } else if (SerialInByte == 10){
-      //pass
-    } else{
-      msg = concat(msg, &SerialInByte);
-    }
-  }
+void WakeUpModem(USART_t* USART) {
+  send_uart("AT+CFUN=1", USART);
 }
 
 void SimpleReceive(USART_t* USART) {
   char c;
-  uart_putchar('\r', USART);
-  _delay_ms(100);
+  int n = 1;
+  char s[n+1];
+
+  uart_putchar('A', USART);
+  send_string("Sync");
+  _delay_ms(3000);
+
+  send_uart("AT", USART);
   send_string("PING");
-  GprsTextModeSMS(USART);
   _delay_ms(100);
-  send_string("Text Mode");
-  send_uart("AT+CMGL=\"ALL\"", USART); // Read Message 
-  _delay_ms(1000);
-  send_string("Read Messages");
-  for (int i=0; i<100; i++) {
-    c = uart_getchar(USART);  
-    send_byte(c);
-    break_and_flush();
+  for (int i=0; i<n; i++) {
+    c = uart_getchar(USART);
+    s[i] = c;
   }
+  s[n] = '\0';
+
+  send_string(s);
+
+
+
+  GprsTextModeSMS(USART);
+  send_string("Text Mode");
+  _delay_ms(800);
+
+  // send_uart("AT+CMGL=\"REC UNREAD\"", USART); // Read Message 
+  // send_string("Read Messages");
+  // _delay_ms(1000);
+
+  send_uart("AT+CMGF=?", USART); // Read Message 
+  send_string("Check Mode");
+  _delay_ms(1000);
 }

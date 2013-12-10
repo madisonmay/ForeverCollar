@@ -29,16 +29,16 @@ int main(void){
 	sei();
 
   //uart init code -- change condition to true when we're ready to communicate with the gps
-	if (false) {
+	if (true) {
 		gps_init();
 	}
 
-  if (true) {
+  if (false) {
     gprs_init();
   }
 
   //call break and flush to make sure the buffer is cleared
-	break_and_flush();
+	// break_and_flush();
 
   // parse nmea string and send result over usb
   // char* text_message = parse_nmea();
@@ -46,8 +46,9 @@ int main(void){
   // char* phonenumber = "+15402095219";
   // send_message(phonenumber, text_message, &USARTD0);
   // send_message(twilio_number, text_message, &USARTD0);
-  send_string("Begin");
-  SimpleReceive(&USARTD0);
+  gps_receive();
+  power_off_gps();
+  // SimpleReceive(&USARTD0);
 
 	for (;;){
     //heart of the firmware logic goes here
