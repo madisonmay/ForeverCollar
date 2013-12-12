@@ -467,18 +467,18 @@
  257               		.file 7 "Descriptors.h"
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 Descriptors.c
-     /tmp/ccC3lwha.s:2      *ABS*:000000000000003f __SREG__
-     /tmp/ccC3lwha.s:3      *ABS*:000000000000003e __SP_H__
-     /tmp/ccC3lwha.s:4      *ABS*:000000000000003d __SP_L__
-     /tmp/ccC3lwha.s:5      *ABS*:0000000000000034 __CCP__
-     /tmp/ccC3lwha.s:6      *ABS*:0000000000000000 __tmp_reg__
-     /tmp/ccC3lwha.s:7      *ABS*:0000000000000001 __zero_reg__
-     /tmp/ccC3lwha.s:15     .text:0000000000000000 CALLBACK_USB_GetDescriptor
-     /tmp/ccC3lwha.s:235    .progmem.data:0000000000000058 XmegaExample_DeviceDescriptor
-     /tmp/ccC3lwha.s:195    .progmem.data:0000000000000034 XmegaExample_LanguageString
-     /tmp/ccC3lwha.s:202    .progmem.data:0000000000000038 XmegaExample_ConfigurationDescriptor
-     /tmp/ccC3lwha.s:174    .progmem.data:0000000000000016 XmegaExample_ManufacturerString
-     /tmp/ccC3lwha.s:157    .progmem.data:0000000000000000 XmegaExample_ProductString
+     /tmp/cc5kWmqW.s:2      *ABS*:000000000000003f __SREG__
+     /tmp/cc5kWmqW.s:3      *ABS*:000000000000003e __SP_H__
+     /tmp/cc5kWmqW.s:4      *ABS*:000000000000003d __SP_L__
+     /tmp/cc5kWmqW.s:5      *ABS*:0000000000000034 __CCP__
+     /tmp/cc5kWmqW.s:6      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cc5kWmqW.s:7      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cc5kWmqW.s:15     .text:0000000000000000 CALLBACK_USB_GetDescriptor
+     /tmp/cc5kWmqW.s:235    .progmem.data:0000000000000058 XmegaExample_DeviceDescriptor
+     /tmp/cc5kWmqW.s:195    .progmem.data:0000000000000034 XmegaExample_LanguageString
+     /tmp/cc5kWmqW.s:202    .progmem.data:0000000000000038 XmegaExample_ConfigurationDescriptor
+     /tmp/cc5kWmqW.s:174    .progmem.data:0000000000000016 XmegaExample_ManufacturerString
+     /tmp/cc5kWmqW.s:157    .progmem.data:0000000000000000 XmegaExample_ProductString
 
 UNDEFINED SYMBOLS
 __do_copy_data

@@ -197,6 +197,7 @@ LDFLAGS += -Wl,-u,vfprintf -lprintf_flt -lm
 # Type: avrdude -c ?
 # to get a full listing.
 #
+# AVRDUDE_PROGRAMMER = avrispmkII
 AVRDUDE_PROGRAMMER = dragon_pdi 
 
 # com1 = serial port. Use lpt1 to connect to parallel port.

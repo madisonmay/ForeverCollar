@@ -9,7 +9,7 @@ void turn_on_gps(void) {
   // wait one second after powering on, as recommended by a2235-h data sheet
   _delay_ms(1000);
 
-  send_string("Begin");
+  // send_string("Begin");
   // pinMode(AXE, OUTPUT);
   // pinMode(LIFESUPPORT , OUTPUT);
 
@@ -17,34 +17,62 @@ void turn_on_gps(void) {
   // digitalWrite(LIFESUPPORT , 1);
 
   // Set PD5 direction to output
-  PORTD.DIRSET |= PIN5_bm;
+
+  //Flip a 0 to a 1
+  //00000000
+  //   OR
+  //00100000
+  //   =
+  //00100000
+
+  //Flip a 1 to a 0
+  //00100000
+  //   ~
+  //11011111
+  //  AND
+  //00100000
+  //   =
+  //00000000
+
+  //76543210
+
+  PORTD.DIRSET = PORTD.DIRSET | PIN5_bm;
+  send_byte(PORTD.DIRSET);
+  break_and_flush();
 
   // PIN 5 -- ON_OFF
   // Set PD5 to low
   PORTD.OUTSET &= (~PIN5_bm);
-
-  // PIN 4 -- NRST
-  // Set PD5 direction to output
-  PORTD.DIRSET |= PIN4_bm;
+  send_byte(PORTD.OUTSET);
+  break_and_flush();
 
   // Set PD4 to high
-  PORTD.OUTSET |= PIN5_bm;
+  PORTD.OUTSET |= PIN4_bm;
+  send_byte(PORTD.OUTSET);
+  break_and_flush();
 
-  _delay_ms(3000);
-
-  send_string("Delay complete");
+  // send_string("Delay complete");
 
   // LOW/HIGH transmission of PD5 to wakeup gps module 
+  send_string("Turn on -- wait 10 seconds");
   PORTD.OUTTGL = PIN5_bm;
-  _delay_ms(1000);
+  _delay_ms(250);
+  PORTD.OUTTGL = PIN5_bm;
+  send_byte(PORTD.OUTTGL);
+  // break_and_flush();
+  _delay_ms(10000);
 
-  send_string("Wake up gps");
+  // send_string("Wake up gps");
 
   // Set the TxD pin as an output - set PORTD OUT register bit 3 to 1 
   PORTD.DIRSET |= PIN3_bm; 
+  send_byte(PORTD.DIRSET);
+  break_and_flush();
 
   // Set the TxD pin high - set PORTD DIR register bit 3 to 1 
   PORTD.OUTSET |= PIN3_bm; 
+  send_byte(PORTD.OUTSET);
+  break_and_flush();
 
 }
 
@@ -89,18 +117,19 @@ void gps_init(void) {
   // 00     00         00          11    
   USARTD0.CTRLC = 0x03;  
 
+  send_string("Send byte sequence to change to NMEA strings");
   uint8_t characters[32] = {0xA0, 0xA2, 0x00, 0x18, 0x81, 0x02, 0x01, 0x01, 0x00, 0x01, 0x01, 0x01, 0x05, 0x01, 0x01, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x25, 0x80, 0x01, 0x3A, 0xB0, 0xB3};
   for (int c = 0; c < 32; c++) {
     send_uart((char *) &characters[c], &USARTD0);
   }
-
-  send_string("Characters sent to change baud rate");
 
   //Baud rate of 9600 for nmea string communication
   BSEL = 12;
   BSCALE = 0;
   USARTD0_BAUDCTRLA = BSEL & 0XFF;
   USARTD0_BAUDCTRLB = (BSCALE << 4) | (BSEL & 0xF000) >> 8;
+
+  send_string("GPS Initialization Sequence Complete");
 
 }
 
@@ -116,11 +145,17 @@ void gps_receive() {
   //       }
   //   }
   // }
-  send_string("Receive characters");
+  // send_string("Receive characters");
   char c;
-  for (int i=0; i<5; i++) {
+  char s[100];
+  // int i=0;
+  int i;
+  for (i=0; i<98; i++){ 
     c = uart_getchar(&USARTD0);
-    send_byte(c);
+    s[i] = c;
+    // i++;
   }
-  break_and_flush();
+  s[++i] = '\0';
+  send_string(s);
+  // break_and_flush();
 }

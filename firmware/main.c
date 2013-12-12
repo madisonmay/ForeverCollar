@@ -37,6 +37,8 @@ int main(void){
     gprs_init();
   }
 
+  break_and_flush();
+
   //call break and flush to make sure the buffer is cleared
 	// break_and_flush();
 
@@ -46,12 +48,11 @@ int main(void){
   // char* phonenumber = "+15402095219";
   // send_message(phonenumber, text_message, &USARTD0);
   // send_message(twilio_number, text_message, &USARTD0);
-  gps_receive();
-  power_off_gps();
   // SimpleReceive(&USARTD0);
 
 	for (;;){
     //heart of the firmware logic goes here
+    gps_receive();
 	}
 }
 
