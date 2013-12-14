@@ -10,6 +10,7 @@ double max_dist = .200;
 typedef struct _latlng {
   double lat;
   double lng;
+  char valid;
 } latlng;
 
 char* parse_nmea(void);
@@ -51,20 +52,34 @@ void parse_nmea_string(char *s, latlng *gps)
   //end
 
   //when parsing GPRMC data
-  //longitude should be stored at index 3
-  //latitude should be stord at index 5
+  //error char at index 1
+  //longitude should be stored at index 2
+  //latitude should be stord at index 4
 
   //indices will have to be changed if our gps module
   //speaks a different dialog of NMEA
 
-  char* lat_str = token[3]; //longitude
-  char* lng_str = token[5]; //latitude
+  char* valid = token[1]; //A --> Valid, V --> Invalid
+  char* lat_str = token[2]; //longitude
+  char* lng_str = token[4]; //latitude
 
-  //converts string stored in gps->lat_str to double and stores in lat
-  gps->lat = atof(lat_str)/100.;
+  gps->valid = *valid;
 
-  //converts string stored in gps->lng_str to double and stores in lng
-  gps->lng = atof(lng_str)/100.;
+  if (*valid == 'A') {
+    gps->valid = 1;
+    char* string_rep = concat(lat_str, concat(" ", lng_str));
+    send_string(string_rep);
+    //converts string stored in gps->lat_str to double and stores in lat
+    gps->lat = atof(lat_str)/100.;
+
+    //converts string stored in gps->lng_str to double and stores in lng
+    gps->lng = atof(lng_str)/100.;
+  } else {
+    gps->valid = 0;
+    send_string("No GPS Signal");
+  }
+
+
 }
 
 
@@ -73,7 +88,6 @@ char* parse_nmea(void) {
     char *buff = "$GPRMC,71.132,A,4230.00,N,-7130.00,E,11.2,0.0,261206,0.0,E*50\r\n";
 
     //latlng struct to store gps data in
-    //reused in every iterationif (d
   
     latlng gps;
 

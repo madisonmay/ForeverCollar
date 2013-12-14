@@ -6,10 +6,17 @@ void wake_up_gps(void);
 #define RESET 4
 
 void turn_on_gps(void) {
-  // wait 1+ seconds after powering on, as recommended by a2235-h data sheet
+  // wait one second after powering on, as recommended by a2235-h data sheet
   _delay_ms(1500);
 
-  //Binary logic notes
+  // send_string("Begin");
+  // pinMode(AXE, OUTPUT);
+  // pinMode(LIFESUPPORT , OUTPUT);
+
+  // digitalWrite(AXE , 0);
+  // digitalWrite(LIFESUPPORT , 1);
+
+  // Set PD5 direction to output
 
   //Flip a 0 to a 1
   //00000000
@@ -29,23 +36,43 @@ void turn_on_gps(void) {
 
   //76543210
 
-
-
-  // PIN 0 -- ON_OFF
-  // Set PD0 to low
   PORTD.DIRSET |= PIN0_bm;
-  PORTD.OUTSET &= (~PIN0_bm);  
+  // send_byte(PORTD.DIRSET);
+  // break_and_flush();
 
-// PIN 4 -- RESET: Active LOW
+  // PIN 5 -- ON_OFF
+  // Set PD5 to low
+  PORTD.OUTSET &= (~PIN0_bm);
+  // send_byte(PORTD.OUTSET);
+  // break_and_flush();
+
+  // PIN 4 -- RESET: Active LOW
   PORTD.DIRSET |= PIN4_bm;
+  // send_byte(PORTD.DIRSET);
+  // break_and_flush();
+
+  // // Set PD4 to LOW
+  // PORTD.OUTSET &= (~PIN4_bm);
+  // send_byte(PORTD.OUTSET);
+  // break_and_flush();
+  // _delay_ms(250);
+
+  // Set PD4 to HIGH
   PORTD.OUTSET |= PIN4_bm;
+  // send_byte(PORTD.OUTSET);
+  // break_and_flush();
 
   // Set the TxD pin as an output - set PORTD OUT register bit 3 to 1 
   PORTD.DIRSET |= PIN3_bm; 
 
+  // Set the RxD pin as an input -- set PORT OUT register bit 2 to 1
+  PORTD.DIRSET &= (~PIN2_bm);
+  // send_byte(PORTD.DIRSET);
+  // break_and_flush();
+
   //Baud rate of 4800 for nmea string communication
-  int BSEL = 12;
-  int BSCALE = 5;
+  uint8_t BSEL = 12;
+  uint8_t BSCALE = 1;
   USARTD0_BAUDCTRLA = BSEL & 0xFF;
   USARTD0_BAUDCTRLB = (BSCALE << 4) | (BSEL & 0xF000) >> 8;
 
@@ -57,17 +84,18 @@ void turn_on_gps(void) {
   USARTD0.CTRLB = USART_TXEN_bm | USART_RXEN_bm;  
 
   // async, no parity, 1 stop bit, 8 bit data,
-  // 00     00         0           011    
+  // 00     00         00          11    
   USARTD0.CTRLC = 0x03;  
 
-  // LOW/HIGH transmission of PD0 to wakeup gps module 
+
+  // LOW/HIGH transmission of PD5 to wakeup gps module 
   _delay_ms(2000);
   PORTD.OUTSET |= PIN0_bm;
   _delay_ms(200);
-  PORTD.OUTTGL = PIN0_bm;
-
-  // give gps time to boot up and start sending nmea string
-  _delay_ms(5000);
+  PORTD.OUTSET &= (~PIN0_bm);
+  // send_byte(PORTD.OUTTGL);
+  // break_and_flush();
+  _delay_ms(10000);
 
   // send_string("Wake up gps");
 
@@ -102,60 +130,23 @@ void gps_init(void) {
 }
 
 void gps_receive() {
-  //parsing out gps coordinates
-
-  //code to look for to indicate start of gps coord string
-  char *code = "$GPRMC,";
-
-  //length of code
-  int length = 7;
-
-  //keep track of location in code
-  int index = 0;
-
-  //indicates whether or not a gps string should be built
-  int read = 0;
-
-  //buffer to hold gps string -- liberally sized
-  char buff[100];
-
-  //keep track of position in buffer
-  int buff_index = 0;
-
-  //gps struct to hold error codes and lat, lng double values
-  latlng gps;
-
-  //char to store bytes from uart
+  // // while (digitalRead(KILLSWITCH)) {
+  //   _delay_ms(10);
+  //   // if (GPS_SERIAL.available()) {
+  //       _delay_ms(10);
+  //       // while(GPS_SERIAL.available()) {
+  //           c = uart_getchar(&USARTD0);
+  //           send_byte(c);
+  //           delay(2);
+  //       }
+  //   }
+  // }
+  // send_string("Receive characters");
+  
   char c; 
-
-  //only terminates when break is hit
-  while (1) {
-    //pull char from uart
+  for (int i=0; i<3; i++) {
     c = uart_getchar(&USARTD0);
-    if (index == length) {
-      //if past `length` characters match code set flip read to on
-      read = 1;
-    }
-
-    if (read == 1) {
-      //build string
-      buff[buff_index] = c;
-      buff_index++;
-
-      if (c == '\r' || c == '\n' || c == 'W') {
-        //send full string
-        buff[buff_index] = '\0';
-        send_string(buff);
-        //additional parsing
-        parse_nmea_string(buff, &gps);
-        break;
-      }
-    } else if (c == code[index]) {
-      //char from matches corresponding char in code
-      index++;
-    } else {
-      //incorrect character, reset counter
-      index = 0;
-    }
+    send_byte(c);
   }
+  break_and_flush();
 }

@@ -17,6 +17,7 @@
 char* twilio_number = "+13042493059";
 char *message;
 bool updating = false;
+int count;
 
 int main(void){
 

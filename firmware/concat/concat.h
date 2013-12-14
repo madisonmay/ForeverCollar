@@ -7,6 +7,7 @@ void send_string(char* s) {
     s++;
   }
   break_and_flush();
+  s = NULL;
 }
 
 char* concat(char *s1, char *s2)
