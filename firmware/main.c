@@ -31,11 +31,13 @@ int main(void){
 
   //uart init code -- change condition to true when we're ready to communicate with the gps
 	if (true) {
-		gps_init();
+		//USART, PORT, POWERPIN_bm, TXPIN_bm, RESETPIN_bm
+		gps_init(&USARTD0, &PORTD, PIN0_bm, PIN3_bm, PIN4_bm);
 	}
 
   if (false) {
-    gprs_init();
+  	//USART, PORT, TXPIN_bm
+    gprs_init(&USARTD0, &PORTD, PIN3_bm);
   }
 
   break_and_flush();
@@ -52,8 +54,8 @@ int main(void){
   // SimpleReceive(&USARTD0);
 
 	for (;;){
-    //heart of the firmware logic goes here
-    gps_receive();
+    //heart of the firmware logic
+    gps_receive(&USARTD0);
 	}
 }
 

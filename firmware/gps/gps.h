@@ -1,11 +1,26 @@
-void gps_init (void);
-void turn_on_gps(void);
-void wake_up_gps(void);
+void gps_init (USART_t* USART, PORT_t* PORT, char PWRPIN_bm, char TXPIN_bm, char RESETPIN_bm);
+void toggle_power_gps(PORT_t* PORT, char PWRPIN_bm);
 
-#define ON_OFF 5
-#define RESET 4
+void toggle_power_gps(PORT_t* PORT, char PWRPIN_bm)
+{
+  // LOW/HIGH transmission of PD0 to wakeup gps module 
+  _delay_ms(2000);
+  PORT->OUTSET |= PWRPIN_bm;
+  _delay_ms(200);
+  PORT->OUTTGL = PWRPIN_bm;
+  // give gps time to boot up and start sending nmea string
+  _delay_ms(5000);
+}
 
-void turn_on_gps(void) {
+void gps_init(USART_t* USART, PORT_t* PORT, char PWRPIN_bm, char TXPIN_bm, char RESETPIN_bm) {
+  /*
+  
+  Port numbers, baud rate, etc will need to be changed when switching 
+  to a different port.  This is a bit complex to abstract out to a new 
+  code layer, but we'll give it our best shot.
+
+  */
+
   // wait 1+ seconds after powering on, as recommended by a2235-h data sheet
   _delay_ms(1500);
 
@@ -31,77 +46,43 @@ void turn_on_gps(void) {
 
 
 
-  // PIN 0 -- ON_OFF
+  // POWER PIN -- ON_OFF
   // Set PD0 to low
-  PORTD.DIRSET |= PIN0_bm;
-  PORTD.OUTSET &= (~PIN0_bm);  
+  PORT->DIRSET |= PWRPIN_bm;
+  PORT->OUTSET &= (~PWRPIN_bm);  
 
-// PIN 4 -- RESET: Active LOW
-  PORTD.DIRSET |= PIN4_bm;
-  PORTD.OUTSET |= PIN4_bm;
+  // RESET PIN : Active LOW
+  // Set to output and send high
+  PORT->DIRSET |= RESETPIN_bm;
+  PORT->OUTSET |= RESETPIN_bm;
 
-  // Set the TxD pin as an output - set PORTD OUT register bit 3 to 1 
-  PORTD.DIRSET |= PIN3_bm; 
+  // Set the TxD pin as an output - set PORT OUT register bit 3 to 1 
+  PORT->DIRSET |= TXPIN_bm; 
 
   //Baud rate of 4800 for nmea string communication
   int BSEL = 12;
   int BSCALE = 5;
-  USARTD0_BAUDCTRLA = BSEL & 0xFF;
-  USARTD0_BAUDCTRLB = (BSCALE << 4) | (BSEL & 0xF000) >> 8;
+  USART->BAUDCTRLA = BSEL & 0xFF;
+  USART->BAUDCTRLB = (BSCALE << 4) | (BSEL & 0xF000) >> 8;
 
   // no interrupts
   // can't overwrite bits 7:6
-  USARTD0.CTRLA = 0x00;
+  USART->CTRLA = 0x00;
 
   // Enable transmitter and receiver
-  USARTD0.CTRLB = USART_TXEN_bm | USART_RXEN_bm;  
+  USART->CTRLB = USART_TXEN_bm | USART_RXEN_bm;  
 
   // async, no parity, 1 stop bit, 8 bit data,
   // 00     00         0           011    
-  USARTD0.CTRLC = 0x03;  
+  USART->CTRLC = 0x03;  
 
   // LOW/HIGH transmission of PD0 to wakeup gps module 
-  _delay_ms(2000);
-  PORTD.OUTSET |= PIN0_bm;
-  _delay_ms(200);
-  PORTD.OUTTGL = PIN0_bm;
-
-  // give gps time to boot up and start sending nmea string
-  _delay_ms(5000);
+  toggle_power_gps(PORT, PWRPIN_bm);
 
   // send_string("Wake up gps");
-
 }
 
-void power_off_gps()
-{
-  // Set PD5 direction to output
-  PORTD.DIRSET |= PIN0_bm;
-
-  // LOW/HIGH transmission of PD5 to wakeup gps module 
-  PORTD.OUTTGL |= PIN0_bm;
-  _delay_ms(1000);
-}
-
-void gps_init(void) {
-  /*
-  
-  Port numbers, baud rate, etc will need to be changed when switching 
-  to a different port.  This is a bit complex to abstract out to a new 
-  code layer at the moment (too many inputs required for things to work right)
-  so we'll have to keep it as is.  
-
-  Specifically, we'll have to change PORTD, USARTDO, BSEL, BSCALE, and the Tx bitmask
-
-  */
-
-  turn_on_gps();
-
-  // send_string("GPS Initialization Sequence Complete");
-
-}
-
-void gps_receive() {
+void gps_receive(USART_t* USART) {
   //parsing out gps coordinates
 
   //code to look for to indicate start of gps coord string
@@ -131,7 +112,7 @@ void gps_receive() {
   //only terminates when break is hit
   while (1) {
     //pull char from uart
-    c = uart_getchar(&USARTD0);
+    c = uart_getchar(USART);
     if (index == length) {
       //if past `length` characters match code set flip read to on
       read = 1;
@@ -142,7 +123,7 @@ void gps_receive() {
       buff[buff_index] = c;
       buff_index++;
 
-      if (c == '\r' || c == '\n' || c == 'W') {
+      if (c == '\r' || c == '\n' || c == 'W' || c == 'E') {
         //send full string
         buff[buff_index] = '\0';
         send_string(buff);
