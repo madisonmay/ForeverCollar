@@ -5,7 +5,7 @@ This repository contains the firmware source code for a gps dog collar prototype
 
 More info on the project is available at the [Forever Collar website.](https://forevercollar.weebly.com)
 
-It builds off of the [CEE framework written by Nonolith Labs.](https://github.com/nonolith/cee-firmware)
+It was built using the [CEE framework written by Nonolith Labs.](https://github.com/nonolith/cee-firmware)
 
 The code is broken down into the following components.
 
