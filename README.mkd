@@ -35,3 +35,7 @@ nmea/nmea.h
 Further code for parsing NMEA strings obtained from the gps module.
 Distance from the home gps coordinates is also calculated using code from this header file.
 
+utils/utils.h
+-------------
+General code for string parsing and usb communication.
+
