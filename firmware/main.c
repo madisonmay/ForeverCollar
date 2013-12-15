@@ -6,18 +6,25 @@
 #include <util/delay.h>
 #include <string.h> 
 #include <math.h>
-#include "concat/concat.h"
+#include "utils/utils.h"
 #include "nmea/nmea.h"
 #include "uart/uart.h"
 #include "gps/gps.h"
 #include "gprs/gprs.h"
 #include "sms/sms.h"
 
-//sample nmea strings for testing parser
+#define HIGH_FREQ 1
+#define LOW_FREQ 0
+
+const uint16_t low_freq = 1000*30;
+const uint16_t high_freq = 1000*30;
+uint8_t freq = 0; // 0 --> low_freq, 1 --> high_freq
+char* phonenumber = "+18572080246";
 char* twilio_number = "+13042493059";
 char *message;
 bool updating = false;
-int count;
+uint8_t count;
+latlng gps;
 
 int main(void){
 
@@ -29,33 +36,44 @@ int main(void){
 	PMIC.CTRL = PMIC_LOLVLEN_bm | PMIC_MEDLVLEN_bm;
 	sei();
 
+  if (true) {
+  	//USART, PORT, TXPIN_bm
+    gprs_init(&USARTC0, &PORTC, PIN3_bm);
+  }
+  
   //uart init code -- change condition to true when we're ready to communicate with the gps
 	if (true) {
 		//USART, PORT, POWERPIN_bm, TXPIN_bm, RESETPIN_bm
 		gps_init(&USARTD0, &PORTD, PIN0_bm, PIN3_bm, PIN4_bm);
 	}
 
-  if (false) {
-  	//USART, PORT, TXPIN_bm
-    gprs_init(&USARTD0, &PORTD, PIN3_bm);
-  }
-
-  break_and_flush();
 
   //call break and flush to make sure the buffer is cleared
 	// break_and_flush();
 
   // parse nmea string and send result over usb
   // char* text_message = parse_nmea();
-
-  // char* phonenumber = "+15402095219";
-  // send_message(phonenumber, text_message, &USARTD0);
+	// char* text_message = "Whatsup?";
+  // send_message(phonenumber, text_message, &USARTC0);
   // send_message(twilio_number, text_message, &USARTD0);
   // SimpleReceive(&USARTD0);
 
 	for (;;){
-    //heart of the firmware logic
-    gps_receive(&USARTD0);
+    gps_receive(&USARTD0, &gps);
+    if (gps.valid) {
+    	if (gps.roaming) {
+		  	send_message(phonenumber, gps.sms, &USARTC0);
+      	send_message(twilio_number, gps.sms, &USARTC0);
+      	freq = HIGH_FREQ;
+    	} else {
+    		freq = LOW_FREQ;
+    	}
+    }
+    if (freq == HIGH_FREQ) {
+    	_delay_ms(high_freq);
+    } else {
+    	_delay_ms(low_freq);
+    }
 	}
 }
 

@@ -82,7 +82,7 @@ void gps_init(USART_t* USART, PORT_t* PORT, char PWRPIN_bm, char TXPIN_bm, char 
   // send_string("Wake up gps");
 }
 
-void gps_receive(USART_t* USART) {
+void gps_receive(USART_t* USART, latlng* gps) {
   //parsing out gps coordinates
 
   //code to look for to indicate start of gps coord string
@@ -102,9 +102,6 @@ void gps_receive(USART_t* USART) {
 
   //keep track of position in buffer
   int buff_index = 0;
-
-  //gps struct to hold error codes and lat, lng double values
-  latlng gps;
 
   //char to store bytes from uart
   char c; 
@@ -126,9 +123,10 @@ void gps_receive(USART_t* USART) {
       if (c == '\r' || c == '\n' || c == 'W' || c == 'E') {
         //send full string
         buff[buff_index] = '\0';
-        send_string(buff);
+        // send_string(buff);
+
         //additional parsing
-        parse_nmea_string(buff, &gps);
+        parse_nmea(buff, gps);
         break;
       }
     } else if (c == code[index]) {

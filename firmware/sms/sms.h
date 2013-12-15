@@ -21,18 +21,21 @@ void send_message(char* number, char* text_message, USART_t* USART) {
 
   GprsTextModeSMS(USART);
   _delay_ms(100);
+  // send_string("GPS TEXT MODE");
 
   //build number string
   char* number_string = concat(concat("AT+CMGS=\"", number), "\"");
   send_uart(number_string, USART);
   _delay_ms(100);
+  // send_string(number_string);
 
   send_uart(text_message, USART);
   _delay_ms(100);
+  // send_string(text_message);
 
   uart_putchar(26, USART);
   _delay_ms(100);
-  break_and_flush();
+  // send_string("COMPLETE");
 }
 
 void GprsTextModeSMS(USART_t* USART) {
@@ -52,6 +55,9 @@ void WakeUpModem(USART_t* USART) {
 }
 
 void SimpleReceive(USART_t* USART) {
+  //not currently functional, perhaps
+  //because of baud rate issues
+  
   char c;
   int n = 1;
   char s[n+1];
@@ -63,7 +69,7 @@ void SimpleReceive(USART_t* USART) {
   send_uart("AT", USART);
   send_string("PING");
   _delay_ms(100);
-  for (int i=0; i<n; i++) {
+  for (uint8_t i=0; i<n; i++) {
     c = uart_getchar(USART);
     s[i] = c;
   }

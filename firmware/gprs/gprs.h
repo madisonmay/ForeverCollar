@@ -9,7 +9,6 @@ void gprs_init(USART_t* USART, PORT_t* PORT, char TXPIN_bm) {
   //change port numbers when we get our proto board
 
   wake_up_gprs();
-  //Baud rate of 19200
 
   // Set the TxD pin as an output - set PORTD OUT register bit 3 to 1 
   PORT->DIRSET = TXPIN_bm; 
@@ -17,8 +16,9 @@ void gprs_init(USART_t* USART, PORT_t* PORT, char TXPIN_bm) {
   // Set the TxD pin high - set PORTD DIR register bit 3 to 1 
   PORT->OUTSET = TXPIN_bm; 
 
-  uint16_t BSEL = 6;
-  uint8_t BSCALE = 0;
+  //Baud rate of 19200
+  uint16_t BSEL = 12;
+  uint8_t BSCALE = 3;
   USART->BAUDCTRLA = BSEL & 0XFF;
   USART->BAUDCTRLB = (BSCALE << 4) | (BSEL & 0xF000) >> 8;
 
