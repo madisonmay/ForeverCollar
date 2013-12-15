@@ -16,8 +16,8 @@
 #define HIGH_FREQ 1
 #define LOW_FREQ 0
 
-const uint16_t low_freq = 1000*30;
-const uint16_t high_freq = 1000*30;
+const uint16_t low_freq = 1000*600; //Every 10 minutes, check GPS
+const uint16_t high_freq = 1000*120; //Every 2 minutes, check GPS
 uint8_t freq = 0; // 0 --> low_freq, 1 --> high_freq
 char* phonenumber = "+18572080246";
 char* twilio_number = "+13042493059";
@@ -40,7 +40,7 @@ int main(void){
   	//USART, PORT, TXPIN_bm
     gprs_init(&USARTC0, &PORTC, PIN3_bm);
   }
-  
+
   //uart init code -- change condition to true when we're ready to communicate with the gps
 	if (true) {
 		//USART, PORT, POWERPIN_bm, TXPIN_bm, RESETPIN_bm
@@ -49,7 +49,7 @@ int main(void){
 
 
   //call break and flush to make sure the buffer is cleared
-	// break_and_flush();
+	break_and_flush();
 
   // parse nmea string and send result over usb
   // char* text_message = parse_nmea();

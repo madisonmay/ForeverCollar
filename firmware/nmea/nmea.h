@@ -72,8 +72,8 @@ void parse_nmea_string(char *s, latlng *gps)
 
   if (*valid == 'A') {
     gps->valid = 1;
-    // char* string_rep = concat(lat_str, concat(" ", lng_str));
-    // send_string(string_rep);
+    char* string_rep = concat(lat_str, concat(" ", lng_str));
+    send_string(string_rep);
     //converts string stored in gps->lat_str to double and stores in lat
     gps->lat = atof(lat_str)/100.;
 
@@ -87,7 +87,7 @@ void parse_nmea_string(char *s, latlng *gps)
     }
   } else {
     gps->valid = 0;
-    // send_string("No GPS Signal");
+    send_string("No GPS Signal");
   }
 
 
