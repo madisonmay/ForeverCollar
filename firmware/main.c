@@ -49,7 +49,7 @@ int main(void){
 
 
   //call break and flush to make sure the buffer is cleared
-	break_and_flush();
+	// break_and_flush();
 
   // parse nmea string and send result over usb
   // char* text_message = parse_nmea();
