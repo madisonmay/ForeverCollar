@@ -3,39 +3,38 @@ Forever Collar -- A Smarter Dog Collar
 
 This repository contains the firmware source code for a gps dog collar prototype built at Olin College as part of the Principles of Engineering course.
 
-More info on the project is available at the [Forever Collar website.](https://forevercollar.weebly.com)
+More info on the project is available at the [Forever Collar website.](https://forevercollar.weebly.com) It was built using the [CEE framework written by Nonolith Labs.](https://github.com/nonolith/cee-firmware)
 
-It was built using the [CEE framework written by Nonolith Labs.](https://github.com/nonolith/cee-firmware)
+Main Files
+----------
 
-The code is broken down into the following components.
-
-main.c 
+`main.c` 
 -------
 The heart of the firmware, main.c contains the execution loop and initialization calls.
 
-uart/uart.h 
+`uart/uart.h` 
 -----------
 Contains code to make communication over uart a tiny bit more bearable.
 
-gps/gps.h
+`gps/gps.h`
 ----------
 Code for the initialization of the A2235-H gps module used.
 Also contains code for receiving and beginning to parsing GPS coordinates from the module.
 
-gprs/gprs.h
+`gprs/gprs.h`
 -----------
 Code for the initialization of the SIM900 GPRS (SMS) module used.
 
-sms/sms.h
+`sms/sms.h`
 --------------
 Contains code for sending AT commands to the GPRS module to initiate a SMS message.  
 
-nmea/nmea.h
+`nmea/nmea.h`
 -----------
 Further code for parsing NMEA strings obtained from the gps module.
 Distance from the home gps coordinates is also calculated using code from this header file.
 
-utils/utils.h
+`utils/utils.h`
 -------------
 General code for string parsing and usb communication.
 
