@@ -10,7 +10,7 @@ Main Files
 
 `main.c` 
 -------
-The heart of the firmware, main.c contains the execution loop and initialization calls.
+The heart of the firmware, main.c contains the execution loop and initialization calls.  This file is also responsible for triggering text messages when the dog is out of range, and modifying the frequency of GPS checks.
 
 `uart/uart.h` 
 -----------
