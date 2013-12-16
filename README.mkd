@@ -3,7 +3,7 @@ Forever Collar -- A Smarter Dog Collar
 
 This repository contains the firmware source code for a gps dog collar prototype built at Olin College as part of the Principles of Engineering course.
 
-More info on the project is available at the [Forever Collar website.](https://forevercollar.weebly.com) It was built using the [CEE framework written by Nonolith Labs.](https://github.com/nonolith/cee-firmware)
+More info on the project is available at the [Forever Collar website.](https://forevercollar.weebly.com) It was built using the [xmega usb framework written by Nonolith Labs.](https://github.com/nonolith/xmega-firmware-framework)
 
 Main Files
 ----------
